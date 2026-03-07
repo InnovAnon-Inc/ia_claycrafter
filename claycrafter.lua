@@ -312,3 +312,189 @@ minetest.register_abm({
 		meta:set_string("infotext", infotext)
 	end
 })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- [2026-03-06] Automated Claycrafter (LV / Appliances Conversion)
+-- Converts compressed dirt into clay using Water and LV Power.
+
+if minetest.get_modpath("appliances") and minetest.get_modpath("claycrafter") and minetest.get_modpath("technic") then
+    local S = minetest.get_translator("claycrafter")
+
+    -- 1. Create the Appliance Object
+    local clay_lv = appliances.appliance:new({
+        node_name_inactive = "claycrafter:claycrafter_lv",
+        node_name_active   = "claycrafter:claycrafter_lv_active",
+
+        node_description   = S("Automated Claycrafter"),
+        node_help          = S("An LV-powered machine that uses water to turn compressed dirt into clay."),
+
+        -- Match original inventory naming for compatibility/clarity
+        input_stack        = "input",
+        input_stack_size   = 2,
+        input_stack_width  = 2,
+
+        --use_stack          = "fuel", -- Used for Water
+        --use_stack_size     = 1,
+        have_usage         = false,
+
+        output_stack       = "output",
+        output_stack_size  = 4,
+        --output_stack_width = 3,
+    })
+
+    -- 2. Data & Power Registration
+    clay_lv:item_data_register({
+        ["tube_item"] = {}, -- Pipeworks support
+    })
+
+    clay_lv:power_data_register({
+        ["no_power"] = {
+            disable = {}
+        },
+        ["LV_power"] = {
+            demand = 50, -- Lower demand than the workbench
+            run_speed = 1,
+            disable = {"no_power"}
+        },
+    })
+
+    -- 3. Recipe Registration
+    -- Register Water as the usage requirement (matches group:h2o from original)
+    -- We assume 'vessels:drinking_glass' is the byproduct if using glasses of water
+--    clay_lv:recipe_register_usage("group:h2o", {
+--        outputs = {"vessels:drinking_glass"},
+--        consumption_time = 40, -- Water lasts for multiple operations
+--        production_step_size = 1,
+--    })
+
+    -- Register the primary production recipe
+    local dirt_item = "claycrafter:compressed_dirt"
+    if minetest.get_modpath("moreblocks") then
+        dirt_item = "moreblocks:dirt_compressed"
+    end
+
+    clay_lv:recipe_register_input("", {
+        inputs = {dirt_item, 'group:h2o'},
+        outputs = {"default:clay"},
+        production_time = 10,
+        consumption_step_size = 1,
+    })
+
+    -- 4. Integration with ia_util (Callbacks & Formspecs)
+    if minetest.get_modpath('ia_util') then
+        -- [2026-03-06] Centralized Pipeworks ejection and Formspec handling
+        function clay_lv:cb_on_production(timer_step)
+            return ia_util.appliances_cb_on_production(self, timer_step)
+        end
+        function clay_lv:get_formspec(meta, production_percent, consumption_percent)
+            return ia_util.appliances_get_formspec(self, meta, production_percent, consumption_percent)
+        end
+	function clay_lv:recipe_aviable_input(inventory)
+	    return ia_util.appliances_recipe_aviable_input(self, inventory)
+	end
+	function clay_lv:recipe_inventory_can_put(pos, listname, index, stack, player_name)
+	    return ia_util.appliances_recipe_inventory_can_put(self, pos, listname, index, stack, player_name)
+	end
+	function clay_lv:recipe_inventory_can_take(pos, listname, index, stack, player_name)
+	    return ia_util.appliances_recipe_inventory_can_take(self, pos, listname, index, stack, player_name)
+	end
+    end
+
+    -- 5. Node Registration
+    -- We inherit the properties of the original claycrafter but update for Appliances
+    local orig_def   = minetest.registered_nodes["claycrafter:claycrafter"]
+    assert(orig_def, "Base claycrafter node not found!")
+    local active_def = minetest.registered_nodes["claycrafter:claycrafter_active"]
+    assert(active_def)
+
+    local node_def = table.copy(orig_def)
+    -- Clean up original ABM/Inventory fields so Appliances can take over
+    node_def.on_construct = nil
+    node_def.on_timer = nil
+    node_def.can_dig = nil
+    --node_def.groups = table.copy(orig_def.groups)
+    --node_def.groups.tubedevice = 1
+    --node_def.groups.tubedevice_receiver = 1
+    node_def.allow_metadata_inventory_put = nil
+    node_def.allow_metadata_inventory_move = nil
+    node_def.allow_metadata_inventory_take = nil
+    node_def.tiles                         = nil
+
+    local visuals_inactive = {
+        tiles = table.copy(orig_def.tiles),
+    }
+
+    local visuals_active = {
+	tiles = table.copy(active_def.tiles)
+    }
+
+    clay_lv:register_nodes(node_def, visuals_inactive, visuals_active)
+
+    -- 6. Upgrade Craft
+    minetest.register_craft({
+        output = "claycrafter:claycrafter_lv",
+        recipe = {
+            {"default:steel_ingot", "technic:lv_transformer", "default:steel_ingot"},
+            {"default:copper_ingot", "claycrafter:claycrafter", "default:copper_ingot"},
+            {"default:steel_ingot", "default:mese_crystal", "default:steel_ingot"},
+        }
+    })
+end
