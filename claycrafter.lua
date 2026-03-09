@@ -375,7 +375,18 @@ minetest.register_abm({
 -- [2026-03-06] Automated Claycrafter (LV / Appliances Conversion)
 -- Converts compressed dirt into clay using Water and LV Power.
 
-if minetest.get_modpath("appliances") and minetest.get_modpath("claycrafter") and minetest.get_modpath("technic") then
+if minetest.get_modpath("appliances") and minetest.get_modpath("pipeworks") and minetest.get_modpath("technic") then
+--if minetest.get_modpath("hopper") then -- NOTE untested
+--	hopper:add_container({
+--		{"top",    "claycrafter:claycrafter_lv",        "output"}, -- top    of hopper removes from output
+--		{"bottom", "claycrafter:claycrafter_lv",        "input"},  -- bottom of hopper inserts to   input
+--		{"side",   "claycrafter:claycrafter_lv",        "input"},
+--		{"top",    "claycrafter:claycrafter_lv_active", "output"},
+--		{"bottom", "claycrafter:claycrafter_lv_active", "input"},
+--		{"side",   "claycrafter:claycrafter_lv_active", "input"},
+--	})
+--end
+
     local S = minetest.get_translator("claycrafter")
 
     -- 1. Create the Appliance Object
@@ -433,7 +444,7 @@ if minetest.get_modpath("appliances") and minetest.get_modpath("claycrafter") an
 
     clay_lv:recipe_register_input("", {
         inputs = {dirt_item, 'group:h2o'},
-        outputs = {"default:clay"},
+        outputs = {"default:clay", "vessels:drinking_glass"},
         production_time = 10,
         consumption_step_size = 1,
     })
@@ -473,7 +484,7 @@ if minetest.get_modpath("appliances") and minetest.get_modpath("claycrafter") an
     --node_def.groups = table.copy(orig_def.groups)
     --node_def.groups.tubedevice = 1
     --node_def.groups.tubedevice_receiver = 1
-    node_def.allow_metadata_inventory_put = nil
+    node_def.allow_metadata_inventory_put  = nil
     node_def.allow_metadata_inventory_move = nil
     node_def.allow_metadata_inventory_take = nil
     node_def.tiles                         = nil
