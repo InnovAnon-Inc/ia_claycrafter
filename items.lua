@@ -25,25 +25,50 @@ else
 	minetest.register_alias("moreblocks:dirt_compressed","claycrafter:compressed_dirt")
 end
 
---nodes
-minetest.register_node("claycrafter:glass_of_water", {
-	description = ("Glass of Water"),
-	drawtype = "plantlike",
-	tiles = {"claycrafter_glass_of_water.png"},
-	inventory_image = "claycrafter_glass_of_water_inv.png",
-	wield_image = "claycrafter_glass_of_water.png",
-	paramtype = "light",
-	use_texture_alpha = "blend",
-	is_ground_content = false,
-	walkable = false,
-	sunlight_propagates = true,
-	selection_box = {type = "fixed",fixed = {-0.25, -0.5, -0.25, 0.25, 0, 0.25}	},
-	groups = {vessel = 1, dig_immediate = 3, attached_node = 1, h2o = 3}, -- How much time to convert 1 compressed dirt to 4 clay
-	on_use = minetest.item_eat(0,"vessels:drinking_glass"),	
-	sounds = default.node_sound_glass_defaults(),
-})
+local function has_farming_redo() -- TODO move to ia_util
+	if not minetest.get_modpath('farming') then return false end
+        local def    = minetest.registered_nodes['farming:glass_water']
+	return (def ~= nil)
+end
+
+local function recipe_exists(item) -- TODO move to ia_util
+    local recipes = minetest.get_all_craft_recipes(item)
+    return recipes and #recipes > 0
+end
+
+if not has_farming_redo() then -- we need a glass of water
+    --nodes
+    minetest.register_node("claycrafter:glass_of_water", {
+        description = ("Glass of Water"),
+        drawtype = "plantlike",
+        tiles = {"claycrafter_glass_of_water.png"},
+        inventory_image = "claycrafter_glass_of_water_inv.png",
+        wield_image = "claycrafter_glass_of_water.png",
+        paramtype = "light",
+        use_texture_alpha = "blend",
+        is_ground_content = false,
+        walkable = false,
+        sunlight_propagates = true,
+        selection_box = {type = "fixed",fixed = {-0.25, -0.5, -0.25, 0.25, 0, 0.25}	},
+        groups = {vessel = 1, dig_immediate = 3, attached_node = 1, h2o = 3}, -- How much time to convert 1 compressed dirt to 4 clay
+        on_use = minetest.item_eat(0,"vessels:drinking_glass"),	
+        sounds = default.node_sound_glass_defaults(),
+    })
+    minetest.register_alias('farming:glass_water', 'claycrafter:glass_of_water')
+else -- use the "industry standard"
+    assert(has_farming_redo())
+    minetest.register_alias('claycrafter:glass_of_water', 'farming:glass_water')
+    local def    = minetest.registered_nodes['farming:glass_water']
+    assert(def ~= nil)
+    local groups = table.copy(def.groups or {})
+    groups.h2o   = 3
+    minetest.override_item('farming:glass_water', {
+        groups   = groups,
+    })
+end
 
 --recipes
+if not recipe_exists("claycrafter:glass_of_water") then
 minetest.register_craft({
 		output = "claycrafter:glass_of_water 8",
 		recipe = {
@@ -64,6 +89,7 @@ minetest.register_craft({
 			{"group:vessel", "group:vessel", "group:vessel"}
 		}
 })
+end
 
 minetest.register_craft({
 		output = "claycrafter:claycrafter",
