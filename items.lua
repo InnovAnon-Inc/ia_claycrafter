@@ -25,19 +25,38 @@ else
 	minetest.register_alias("moreblocks:dirt_compressed","claycrafter:compressed_dirt")
 end
 
-local function has_farming_redo() -- TODO move to ia_util
-	if not minetest.get_modpath('farming') then return false end
-        local def    = minetest.registered_nodes['farming:glass_water']
-	return (def ~= nil)
+local function register_craft_glass_water(itemname)
+    assert(not ia_util.recipe_exists(itemname))
+    minetest.register_craft({
+        output = itemname.." 8",
+        recipe = {
+                    {"group:vessel", "group:vessel",       "group:vessel"},
+                    {"group:vessel", "group:water_bucket", "group:vessel"},
+                    {"group:vessel", "group:vessel",       "group:vessel"}
+		},
+                replacements = {
+                    {"group:water_bucket", "bucket:bucket_empty"},
+                }
+        })
 end
 
-local function recipe_exists(item) -- TODO move to ia_util
-    local recipes = minetest.get_all_craft_recipes(item)
-    return recipes and #recipes > 0
-end
-
-if not has_farming_redo() then -- we need a glass of water
-    --nodes
+if ia_util.has_placeable_buckets_redo() then
+    --minetest.register_alias('claycrafter:glass_of_water', 'placeable_buckets:glass_water')
+    --assert(ia_util.recipe_exists("placeable_buckets:glass_water"))
+    minetest.register_alias('claycrafter:glass_of_water', 'placeable_buckets:jcu_water')
+    --assert(ia_util.recipe_exists("claycrafter:glass_of_water"))
+    register_craft_glass_water('placeable_buckets:jcu_water')
+elseif ia_util.has_farming_redo() then
+    minetest.register_alias('claycrafter:glass_of_water', 'farming:glass_water')
+    local def    = minetest.registered_nodes['farming:glass_water']
+    assert(def ~= nil)
+    local groups = table.copy(def.groups or {})
+    groups.h2o   = 3
+    minetest.override_item('farming:glass_water', {
+        groups   = groups,
+    })
+    register_craft_glass_water('farming:glass_water')
+else -- we need a glass of water
     minetest.register_node("claycrafter:glass_of_water", {
         description = ("Glass of Water"),
         drawtype = "plantlike",
@@ -54,42 +73,10 @@ if not has_farming_redo() then -- we need a glass of water
         on_use = minetest.item_eat(0,"vessels:drinking_glass"),	
         sounds = default.node_sound_glass_defaults(),
     })
-    minetest.register_alias('farming:glass_water', 'claycrafter:glass_of_water')
-else -- use the "industry standard"
-    assert(has_farming_redo())
-    minetest.register_alias('claycrafter:glass_of_water', 'farming:glass_water')
-    local def    = minetest.registered_nodes['farming:glass_water']
-    assert(def ~= nil)
-    local groups = table.copy(def.groups or {})
-    groups.h2o   = 3
-    minetest.override_item('farming:glass_water', {
-        groups   = groups,
-    })
+    register_craft_glass_water('claycrafter:glass_of_water')
 end
 
 --recipes
-if not recipe_exists("claycrafter:glass_of_water") then
-minetest.register_craft({
-		output = "claycrafter:glass_of_water 8",
-		recipe = {
-			{"group:vessel", "group:vessel", "group:vessel"},
-			{"group:vessel", "group:water_bucket", "group:vessel"},
-			{"group:vessel", "group:vessel", "group:vessel"}
-		},
-		replacements = {
-			{"group:water_bucket", "bucket:bucket_empty"},
-		}
-})
-
-minetest.register_craft({
-		output = "claycrafter:glass_of_water 8",
-		recipe = {
-			{"group:vessel", "group:vessel", "group:vessel"},
-			{"group:vessel", "group:water", "group:vessel"},
-			{"group:vessel", "group:vessel", "group:vessel"}
-		}
-})
-end
 
 minetest.register_craft({
 		output = "claycrafter:claycrafter",
